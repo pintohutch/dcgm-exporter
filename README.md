@@ -4,6 +4,8 @@ This repository contains the DCGM-Exporter project. It exposes GPU metrics expor
 
 ### Documentation
 
+BLAH BLAH
+
 Official documentation for DCGM-Exporter can be found on [docs.nvidia.com](https://docs.nvidia.com/datacenter/cloud-native/gpu-telemetry/dcgm-exporter.html).
 
 ### Quickstart
