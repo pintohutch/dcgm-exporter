@@ -73,35 +73,7 @@ func (p *PodMapper) Process(metrics MetricsByCounter, sysInfo SystemInfo) error 
 		return err
 	}
 
-	if !p.Config.KubernetesVirtualGPUs {
-		deviceToPod := p.toDeviceToPod(pods, sysInfo)
-
-		logrus.Debugf("Device to pod mapping: %+v", deviceToPod)
-
-		// Note: for loop are copies the value, if we want to change the value
-		// and not the copy, we need to use the indexes
-		for counter := range metrics {
-			for j, val := range metrics[counter] {
-				deviceID, err := val.getIDOfType(p.Config.KubernetesGPUIdType)
-				if err != nil {
-					return err
-				}
-
-				podInfo, exists := deviceToPod[deviceID]
-				if exists {
-					if !p.Config.UseOldNamespace {
-						metrics[counter][j].Attributes[podAttribute] = podInfo.Name
-						metrics[counter][j].Attributes[namespaceAttribute] = podInfo.Namespace
-						metrics[counter][j].Attributes[containerAttribute] = podInfo.Container
-					} else {
-						metrics[counter][j].Attributes[oldPodAttribute] = podInfo.Name
-						metrics[counter][j].Attributes[oldNamespaceAttribute] = podInfo.Namespace
-						metrics[counter][j].Attributes[oldContainerAttribute] = podInfo.Container
-					}
-				}
-			}
-		}
-	} else {
+	if p.Config.KubernetesVirtualGPUs {
 		deviceToPods := p.toDeviceToSharingPods(pods, sysInfo)
 
 		logrus.Debugf("Device to sharing pods mapping: %+v", deviceToPods)
@@ -133,6 +105,35 @@ func (p *PodMapper) Process(metrics MetricsByCounter, sysInfo SystemInfo) error 
 				}
 			}
 			metrics[counter] = newmetrics
+		}
+		return nil
+	}
+
+	deviceToPod := p.toDeviceToPod(pods, sysInfo)
+
+	logrus.Debugf("Device to pod mapping: %+v", deviceToPod)
+
+	// Note: for loop are copies the value, if we want to change the value
+	// and not the copy, we need to use the indexes
+	for counter := range metrics {
+		for j, val := range metrics[counter] {
+			deviceID, err := val.getIDOfType(p.Config.KubernetesGPUIdType)
+			if err != nil {
+				return err
+			}
+
+			podInfo, exists := deviceToPod[deviceID]
+			if exists {
+				if !p.Config.UseOldNamespace {
+					metrics[counter][j].Attributes[podAttribute] = podInfo.Name
+					metrics[counter][j].Attributes[namespaceAttribute] = podInfo.Namespace
+					metrics[counter][j].Attributes[containerAttribute] = podInfo.Container
+				} else {
+					metrics[counter][j].Attributes[oldPodAttribute] = podInfo.Name
+					metrics[counter][j].Attributes[oldNamespaceAttribute] = podInfo.Namespace
+					metrics[counter][j].Attributes[oldContainerAttribute] = podInfo.Container
+				}
+			}
 		}
 	}
 
