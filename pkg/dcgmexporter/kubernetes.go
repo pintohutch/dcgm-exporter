@@ -78,10 +78,11 @@ func (p *PodMapper) Process(metrics MetricsByCounter, sysInfo SystemInfo) error 
 
 		logrus.Debugf("Device to sharing pods mapping: %+v", deviceToPods)
 
-		// Note: for loop are copies the value, if we want to change the value
-		// and not the copy, we need to use the indexes
+		// For each counter metric, init a slice to collect metrics to associate with shared virtual GPUs.
 		for counter := range metrics {
 			var newmetrics []Metric
+			// For each instrumented device, build list of metrics and create
+			// new metrics for any shared GPUs.
 			for j, val := range metrics[counter] {
 				deviceID, err := val.getIDOfType(p.Config.KubernetesGPUIdType)
 				if err != nil {
@@ -89,6 +90,10 @@ func (p *PodMapper) Process(metrics MetricsByCounter, sysInfo SystemInfo) error 
 				}
 
 				podInfos, _ := deviceToPods[deviceID]
+				// For all containers using the GPU, extract and annotate a metric
+				// with the container info and the shared GPU label, if it exists.
+				// Notably, this will increase the number of unique metrics (i.e. labelsets)
+				// to by the number of containers sharing the GPU.
 				for _, pi := range podInfos {
 					metric := metrics[counter][j]
 					if !p.Config.UseOldNamespace {
@@ -100,10 +105,13 @@ func (p *PodMapper) Process(metrics MetricsByCounter, sysInfo SystemInfo) error 
 						metric.Attributes[oldNamespaceAttribute] = pi.Namespace
 						metric.Attributes[oldContainerAttribute] = pi.Container
 					}
-					metric.Attributes[vgpuAttribute] = pi.VGPU
+					if pi.VGPU != "" {
+						metric.Attributes[vgpuAttribute] = pi.VGPU
+					}
 					newmetrics = append(newmetrics, metric)
 				}
 			}
+			// Upsert the annotated metrics into the final map.
 			metrics[counter] = newmetrics
 		}
 		return nil
