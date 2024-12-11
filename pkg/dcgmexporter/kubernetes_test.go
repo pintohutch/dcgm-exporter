@@ -335,3 +335,64 @@ func TestProcessPodMapper_WithD_Different_Format_Of_DeviceID(t *testing.T) {
 			})
 	}
 }
+
+func TestGetSharedGPU(t *testing.T) {
+	cases := []struct {
+		desc, deviceID string
+		wantVGPU       string
+		wantOK         bool
+	}{
+		{
+			desc:     "gke device plugin, non-mig, shared",
+			deviceID: "nvidia0/vgpu0",
+			wantVGPU: "0",
+			wantOK:   true,
+		},
+		{
+			desc:     "gke device plugin, non-mig, non-shared",
+			deviceID: "nvidia0",
+		},
+		{
+			desc:     "gke device plugin, mig, shared",
+			deviceID: "nvidia0/gi0/vgpu1",
+			wantVGPU: "1",
+			wantOK:   true,
+		},
+		{
+			desc:     "gke device plugin, mig, non-shared",
+			deviceID: "nvidia0/gi0",
+		},
+		{
+			desc:     "nvidia device plugin, non-mig, shared",
+			deviceID: "GPU-5a5a7118-e550-79a1-597e-7631e126c57a::3",
+			wantVGPU: "3",
+			wantOK:   true,
+		},
+		{
+			desc:     "nvidia device plugin, non-mig, non-shared",
+			deviceID: "GPU-5a5a7118-e550-79a1-597e-7631e126c57a",
+		},
+		{
+			desc:     "nvidia device plugin, mig, shared",
+			deviceID: "MIG-42f0f413-f7b0-58cc-aced-c1d1fb54db26::0",
+			wantVGPU: "0",
+			wantOK:   true,
+		},
+		{
+			desc:     "nvidia device plugin, mig, non-shared",
+			deviceID: "MIG-42f0f413-f7b0-58cc-aced-c1d1fb54db26",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			gotVGPU, gotOK := getSharedGPU(tc.deviceID)
+			if gotVGPU != tc.wantVGPU {
+				t.Errorf("expected: %s, got: %s", tc.wantVGPU, gotVGPU)
+			}
+			if gotOK != tc.wantOK {
+				t.Errorf("expected: %t, got: %t", tc.wantOK, gotOK)
+			}
+		})
+	}
+}

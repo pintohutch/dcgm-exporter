@@ -185,9 +185,9 @@ func (p *PodMapper) listPods(conn *grpc.ClientConn) (*podresourcesapi.ListPodRes
 func getSharedGPU(deviceID string) (string, bool) {
 	// Check if we're using the GKE device plugin or NVIDIA device plugin.
 	if strings.Contains(deviceID, gkeVirtualGPUDeviceIDSeparator) {
-		return strings.Split(deviceID, gkeVirtualGPUDeviceIDSeparator)[0], true
+		return strings.Split(deviceID, gkeVirtualGPUDeviceIDSeparator)[1], true
 	} else if strings.Contains(deviceID, "::") {
-		return strings.Split(deviceID, "::")[0], true
+		return strings.Split(deviceID, "::")[1], true
 	}
 	return "", false
 }
